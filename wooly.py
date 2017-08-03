@@ -6,9 +6,11 @@ from nltk.tokenize import word_tokenize
 from nltk.chunk import conlltags2tree
 from nltk.tree import Tree
 
+originText = open("news_article.txt").read()
+
 # Process Text
 def process_text():
-	raw_text = open("news_article.txt").read()
+	raw_text = originText
 	token_text = word_tokenize(raw_text)
 	return token_text
 
@@ -19,11 +21,7 @@ def stanford_tagger(token_text):
     return(ne_tagged)
 
 
-# NLTK POS and NER taggers   
-def nltk_tagger(token_text):
-	tagged_words = nltk.pos_tag(token_text)
-	ne_tagged = nltk.ne_chunk(tagged_words)
-	return(ne_tagged)
+
 
 
 # Tag tokens with standard NLP BIO tags
@@ -68,14 +66,9 @@ def structure_ne(ne_tree):
 def stanford_main():
     print(structure_ne(stanford_tree(bio_tagger(stanford_tagger(process_text())))))
 
-def nltk_main():
-	print(structure_ne(nltk_tagger(process_text())))
+
 
 if __name__ == '__main__':
-    print("this is stanford")
     stanford_main()
-    print("this is nltk")
-    nltk_main()
-
 
 print("done")
