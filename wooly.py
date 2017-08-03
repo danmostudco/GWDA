@@ -63,12 +63,17 @@ def structure_ne(ne_tree):
 			ne.append((ne_string, ne_label))
 	return ne
 
-def stanford_main():
-    print(structure_ne(stanford_tree(bio_tagger(stanford_tagger(process_text())))))
+def woolyAnonymizer(text):
+    # generate list of tuples with Detected Entity in index 0 and entity type in index 1
+    conversionList = structure_ne(stanford_tree(bio_tagger(stanford_tagger(process_text()))))
 
+    # for each pair, find and replace in the passed text
+    for pair in conversionList:
+        findPhrase = pair[0]
+        replacePhrase = pair[1]
+        text = text.replace(findPhrase, replacePhrase)
 
+    print(text)
+    return(text)
 
-if __name__ == '__main__':
-    stanford_main()
-
-print("done")
+woolyAnonymizer(originText)
