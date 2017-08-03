@@ -1,17 +1,81 @@
-# -*- coding: utf-8 -*-
-# make sure you set up stanford-ner folder and include the .gz and .jar files
 import nltk
+import numpy as np
+from nltk import pos_tag
 from nltk.tag import StanfordNERTagger
-st = StanfordNERTagger('stanford-ner/english.all.3class.distsim.crf.ser.gz', 'stanford-ner/stanford-ner.jar')
-text = """
-In 2013, Peter Hollens was an aspiring a cappella singer surviving, in his words, by living on ramen in someone else’s house. Hollens was hardly new to the music business; he’d been a record producer and cruise singer before striking out on his own, and his wife Evynne co-founded the college a cappella group that inspired Pitch Perfect. His elaborate, multi-layered covers of pop songs had won him a dedicated following, but none of that translated to financial success. He was unsigned, song sales on platforms like iTunes were unpredictable, YouTube advertising revenue was “minuscule,” and since he covered other artists’ work, sponsor deals were legally complicated. """
+from nltk.tokenize import word_tokenize
+from nltk.chunk import conlltags2tree
+from nltk.tree import Tree
+
+# Process Text
+def process_text():
+	raw_text = open("news_article.txt").read()
+	token_text = word_tokenize(raw_text)
+	return token_text
+
+# Define the NER Tagger from Stanford
+def stanford_tagger(token_text):
+    st = StanfordNERTagger('stanford-ner/english.all.3class.distsim.crf.ser.gz', 'stanford-ner/stanford-ner.jar')
+    ne_tagged = st.tag(token_text)
+    return(ne_tagged)
 
 
-for sent in nltk.sent_tokenize(text):
-    tokens = nltk.tokenize.word_tokenize(sent)
-    tags = st.tag(tokens)
-    for tag in tags:
-        if tag[1]=='PERSON': print tag
+# NLTK POS and NER taggers   
+def nltk_tagger(token_text):
+	tagged_words = nltk.pos_tag(token_text)
+	ne_tagged = nltk.ne_chunk(tagged_words)
+	return(ne_tagged)
+
+
+# Tag tokens with standard NLP BIO tags
+def bio_tagger(ne_tagged):
+		bio_tagged = []
+		prev_tag = "O"
+		for token, tag in ne_tagged:
+			if tag == "O": #O
+				bio_tagged.append((token, tag))
+				prev_tag = tag
+				continue
+			if tag != "O" and prev_tag == "O": # Begin NE
+				bio_tagged.append((token, "B-"+tag))
+				prev_tag = tag
+			elif prev_tag != "O" and prev_tag == tag: # Inside NE
+				bio_tagged.append((token, "I-"+tag))
+				prev_tag = tag
+			elif prev_tag != "O" and prev_tag != tag: # Adjacent NE
+				bio_tagged.append((token, "B-"+tag))
+				prev_tag = tag
+		return bio_tagged
+
+# Create tree       
+def stanford_tree(bio_tagged):
+	tokens, ne_tags = zip(*bio_tagged)
+	pos_tags = [pos for token, pos in pos_tag(tokens)]
+
+	conlltags = [(token, pos, ne) for token, pos, ne in zip(tokens, pos_tags, ne_tags)]
+	ne_tree = conlltags2tree(conlltags)
+	return ne_tree
+
+# Parse named entities from tree
+def structure_ne(ne_tree):
+	ne = []
+	for subtree in ne_tree:
+		if type(subtree) == Tree: # If subtree is a noun chunk, i.e. NE != "O"
+			ne_label = subtree.label()
+			ne_string = " ".join([token for token, pos in subtree.leaves()])
+			ne.append((ne_string, ne_label))
+	return ne
+
+def stanford_main():
+    print(structure_ne(stanford_tree(bio_tagger(stanford_tagger(process_text())))))
+
+def nltk_main():
+	print(structure_ne(nltk_tagger(process_text())))
+
+if __name__ == '__main__':
+    print("this is stanford")
+    stanford_main()
+    print("this is nltk")
+    nltk_main()
 
 
 print("done")
