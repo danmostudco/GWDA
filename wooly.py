@@ -1,12 +1,13 @@
 import nltk
 import numpy as np
+import re
 from nltk import pos_tag
 from nltk.tag import StanfordNERTagger
 from nltk.tokenize import word_tokenize
 from nltk.chunk import conlltags2tree
 from nltk.tree import Tree
 
-originText = open("news_article.txt").read()
+originText = open("test_Article.txt").read()
 
 # Process Text
 def process_text():
@@ -18,11 +19,7 @@ def process_text():
 def stanford_tagger(token_text):
     st = StanfordNERTagger('stanford-ner/english.all.3class.distsim.crf.ser.gz', 'stanford-ner/stanford-ner.jar')
     ne_tagged = st.tag(token_text)
-    return(ne_tagged)
-
-
-
-
+    return ne_tagged
 
 # Tag tokens with standard NLP BIO tags
 def bio_tagger(ne_tagged):
@@ -63,7 +60,29 @@ def structure_ne(ne_tree):
 			ne.append((ne_string, ne_label))
 	return ne
 
-def woolyAnonymizer(text):
+#remove any email addresses
+def emailScrubber(text):
+    listOfEmails = []
+    #EMAIL_REGEX = re.compile(r"[\w\.-]+@[\w\.-]+\.\w+")
+    match = re.findall(r'[\w\.-]+@[\w\.-]+\.\w+', text)
+    for hit in match:
+        listOfEmails.append(hit)
+
+    for row in listOfEmails:
+        findPhrase = row
+        replacePhrase = "EMAIL_ADDRESS"
+        text = text.replace(findPhrase, replacePhrase)
+    
+    # return the final email text output
+    return text
+
+def numberNuker(text):
+    newText = re.sub("\d+", "###", text)
+    return newText
+
+def stanfordAnonymizer(text):
+    stanfordText = text
+    
     # generate list of tuples with Detected Entity in index 0 and entity type in index 1
     conversionList = structure_ne(stanford_tree(bio_tagger(stanford_tagger(process_text()))))
 
@@ -71,9 +90,23 @@ def woolyAnonymizer(text):
     for pair in conversionList:
         findPhrase = pair[0]
         replacePhrase = pair[1]
-        text = text.replace(findPhrase, replacePhrase)
+        stanfordText = stanfordText.replace(findPhrase, replacePhrase)
 
-    print(text)
-    return(text)
+    # return the final text output
+    return stanfordText
 
-woolyAnonymizer(originText)
+
+def woolyAnonymizer(text):
+    stanfordText = stanfordAnonymizer(text)
+    emailText = emailScrubber(stanfordText)
+    numberText = numberNuker(emailText)
+
+    # print the final output
+    return numberText
+
+# call the final wooly anonymizer function
+newText = woolyAnonymizer(originText)
+
+finalPrint = woolyAnonymizer(newText)
+
+print finalPrint

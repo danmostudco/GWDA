@@ -1,2 +1,4 @@
 WoolyBox/
 .vscode/
+stanford-ner/
+.DS_Store
