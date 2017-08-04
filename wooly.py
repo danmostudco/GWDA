@@ -2,24 +2,22 @@ import nltk
 import numpy as np
 import re
 from nltk import pos_tag
-from nltk.tag import StanfordNERTagger
 from nltk.tokenize import word_tokenize
 from nltk.chunk import conlltags2tree
 from nltk.tree import Tree
 
-originText = open("test_Article.txt").read()
+originText = open("test_Emails.txt").read()
 
 # Process Text
-def process_text():
-	raw_text = originText
-	token_text = word_tokenize(raw_text)
+def process_text(text):
+	token_text = word_tokenize(text)
 	return token_text
 
-# Define the NER Tagger from Stanford
-def stanford_tagger(token_text):
-    st = StanfordNERTagger('stanford-ner/english.all.3class.distsim.crf.ser.gz', 'stanford-ner/stanford-ner.jar')
-    ne_tagged = st.tag(token_text)
-    return ne_tagged
+# NLTK POS and NER taggers   
+def nltk_tagger(token_text):
+	tagged_words = nltk.pos_tag(token_text)
+	ne_tagged = nltk.ne_chunk(tagged_words)
+	return(ne_tagged)
 
 # Tag tokens with standard NLP BIO tags
 def bio_tagger(ne_tagged):
@@ -41,15 +39,6 @@ def bio_tagger(ne_tagged):
 				prev_tag = tag
 		return bio_tagged
 
-# Create tree       
-def stanford_tree(bio_tagged):
-	tokens, ne_tags = zip(*bio_tagged)
-	pos_tags = [pos for token, pos in pos_tag(tokens)]
-
-	conlltags = [(token, pos, ne) for token, pos, ne in zip(tokens, pos_tags, ne_tags)]
-	ne_tree = conlltags2tree(conlltags)
-	return ne_tree
-
 # Parse named entities from tree
 def structure_ne(ne_tree):
 	ne = []
@@ -59,6 +48,21 @@ def structure_ne(ne_tree):
 			ne_string = " ".join([token for token, pos in subtree.leaves()])
 			ne.append((ne_string, ne_label))
 	return ne
+
+def nltkAnonymizer(text):
+    nltkText = text
+
+    # generate list of tuples with Detected Entity in index 0 and entity type in index 1
+    conversionList = structure_ne(nltk_tagger(process_text(nltkText)))
+
+    #for each pair, find and replace in the passed text
+    for pair in conversionList:
+        findPhrase = pair[0]
+        replacePhrase = pair[1]
+        nltkText = nltkText.replace(findPhrase, replacePhrase)
+
+    # return the final text output
+    return nltkText
 
 #remove any email addresses
 def emailScrubber(text):
@@ -80,33 +84,16 @@ def numberNuker(text):
     newText = re.sub("\d+", "###", text)
     return newText
 
-def stanfordAnonymizer(text):
-    stanfordText = text
-    
-    # generate list of tuples with Detected Entity in index 0 and entity type in index 1
-    conversionList = structure_ne(stanford_tree(bio_tagger(stanford_tagger(process_text()))))
 
-    # for each pair, find and replace in the passed text
-    for pair in conversionList:
-        findPhrase = pair[0]
-        replacePhrase = pair[1]
-        stanfordText = stanfordText.replace(findPhrase, replacePhrase)
-
-    # return the final text output
-    return stanfordText
-
-
+# the grand finale, the beast arrives
 def woolyAnonymizer(text):
-    stanfordText = stanfordAnonymizer(text)
-    emailText = emailScrubber(stanfordText)
+    nltkText = nltkAnonymizer(text)
+    emailText = emailScrubber(nltkText)
     numberText = numberNuker(emailText)
 
     # print the final output
+    print numberText
     return numberText
 
 # call the final wooly anonymizer function
-newText = woolyAnonymizer(originText)
-
-finalPrint = woolyAnonymizer(newText)
-
-print finalPrint
+woolyAnonymizer(originText)
