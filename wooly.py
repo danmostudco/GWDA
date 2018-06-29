@@ -6,14 +6,14 @@ from nltk.tokenize import word_tokenize
 from nltk.chunk import conlltags2tree
 from nltk.tree import Tree
 
-originText = open("test_Emails.txt").read()
+# originText = open("test_Emails.txt").read()
 
 # Process Text
 def process_text(text):
 	token_text = word_tokenize(text)
 	return token_text
 
-# NLTK POS and NER taggers   
+# NLTK POS and NER taggers
 def nltk_tagger(token_text):
 	tagged_words = nltk.pos_tag(token_text)
 	ne_tagged = nltk.ne_chunk(tagged_words)
@@ -76,7 +76,7 @@ def emailScrubber(text):
         findPhrase = row
         replacePhrase = "EMAIL_ADDRESS"
         text = text.replace(findPhrase, replacePhrase)
-    
+
     # return the final email text output
     return text
 
@@ -87,13 +87,20 @@ def numberNuker(text):
 
 # the grand finale, the beast arrives
 def woolyAnonymizer(text):
-    nltkText = nltkAnonymizer(text)
-    emailText = emailScrubber(nltkText)
-    numberText = numberNuker(emailText)
 
-    # print the final output
-    print numberText
-    return numberText
+	try:
+		nltkText = nltkAnonymizer(text)
+		emailText = emailScrubber(nltkText)
+		finalText = numberNuker(emailText)
+
+		# print the final output
+		# print finalText
+		return finalText
+
+	except Exception as error:
+		return "NLTK: Type Error Parsing Description: " + repr(error)
+
+
 
 # call the final wooly anonymizer function
-woolyAnonymizer(originText)
+# woolyAnonymizer(originText)
